@@ -5,6 +5,18 @@
     %entities;
 ]>
 
+<!--
+ toms 2019-11-27 Some useful links:
+
+* https://wiki.ubuntu.com/Kernel/Reference/IOSchedulers
+* https://wiki.archlinux.org/index.php/Improving_performance#Input/output_schedulers
+* https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/monitoring_and_managing_system_status_and_performance/setting-the-disk-scheduler_monitoring-and-managing-system-status-and-performance
+
+Related bugs:
+* bsc#1149988: Switching I/O Scheduling
+* bsc#1152259: release notes should explain changes in IO scheduler
+-->
+
 <chapter xmlns="http://docbook.org/ns/docbook" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:xlink="http://www.w3.org/1999/xlink" version="5.0" xml:id="cha-tuning-io">
  <title>Tuning I/O Performance</title>
  <info>
@@ -16,7 +28,7 @@
     <para>
   I/O scheduling controls how input/output operations will be submitted to
   storage. &productname; offers various I/O algorithms&mdash;called
-  <literal>elevators</literal>&mdash;suiting different workloads.
+  <quote>elevators</quote>&mdash;suiting different workloads.
   Elevators can help to reduce seek operations and can prioritize I/O requests.
  </para>
  <para>
@@ -25,6 +37,7 @@
   network storage systems, for example, each require different tuning
   strategies.
  </para>
+
  <sect1 xml:id="cha-tuning-io-switch">
   <title>Switching I/O Scheduling</title>
 
@@ -35,15 +48,71 @@
    device hosting a database.
   </para>
 
+<!-- toms 2019-11-27:  Not sure where to place the following information.
+
+  <para>
+   For &sle; 12 SP3, available schedulers were: "noop [deadline] cfq".
+  </para>
+  <para>
+   For &sle; 12 SP4 this has changed to "[mq-deadline] kyber bfq none".
+  </para>
+-->
+
+<!-- toms 2019-11-27: maybe a short overview might be helpful. It doesn't
+     have to be here.
+
+  <variablelist>
+   <varlistentry>
+    <term><link xlink:href="https://en.wikipedia.org/wiki/Budget_Fair_Queueing">bfq</link></term>
+    <listitem>
+     <para>Multi-Queue Block IO Queueing Mechanism</para>
+    </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><link xlink:href="https://en.wikipedia.org/wiki/Completely_Fair_Scheduler">cfs</link></term>
+    <listitem>
+     <para>is the default scheduler </para>
+    </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term>kyber</term>
+    <listitem>
+     <para>intended for fast devices.</para>
+    </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term>mq-deadline</term>
+    <listitem>
+     <para>used for SSD SATA and SCSI drives</para>
+    </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term>none</term>
+    <listitem>
+     <para>No scheduler is used. Mostly used device mappers like LVM.</para>
+    </listitem>
+   </varlistentry>
+   <varlistentry>
+    <term><link xlink:href="https://en.wikipedia.org/wiki/Noop_scheduler">noop</link> </term>
+    <listitem>
+     <para>the simplest I/O scheduler. It is based on the first-in first out
+      (FIFO) concept. It is best suited for SSDs and NVMes.</para>
+    </listitem>
+   </varlistentry>
+  </variablelist>
+  -->
+
   <para>
    The default I/O scheduler is chosen for each device based on whether the
    device reports to be rotational disk or not. For non-rotational disks
    <systemitem class="resource">DEADLINE</systemitem> I/O scheduler is picked.
    Other devices default to
-   <systemitem class="resource">CFQ</systemitem> (Completely Fair Queuing).
+   <systemitem class="resource">CFQ</systemitem>.
    To change this default, use the following boot parameter:
   </para>
-
+  <remark>toms 2019-11-27: according to Sören, this will not always
+  work. Ask developer to confirm.
+  </remark>
 <screen>elevator=<replaceable>SCHEDULER</replaceable></screen>
 
   <para>
@@ -81,6 +150,7 @@
    </para>
   </note>
  </sect1>
+
  <sect1 xml:id="cha-tuning-io-schedulers">
   <title>Available I/O Elevators</title>
 
@@ -113,6 +183,14 @@ noop deadline [cfq]</screen>
   linkend="cha-tuning-io-scsimq"/>).
   </para>
 
+  <remark>toms 2019-11-27: Maybe list schedulers in alphabetical order?
+  Maybe group them as multiqueue and non-multiqueue schedulers?
+
+  Multiqueue I/O schedulers: bfq, kyper, none, mq-deadline
+  Non-multiqueue I/O schedulers: deadline, cfq, noop
+  </remark>
+
+  <!-- toms 2019-11-27: Non-multiqueue I/O schedulers -->
   <sect2 xml:id="sec-tuning-io-schedulers-cfq">
    <title><systemitem class="resource">CFQ</systemitem> (Completely Fair Queuing)</title>
    <para>
@@ -463,6 +541,23 @@ sys     0m1.516s</screen>
     </varlistentry>
    </variablelist>
   </sect2>
+
+  <!-- toms 2019-11-27: Multiqueue I/O schedulers -->
+  <sect2 xml:id="sec-tuning-io-schedulers-bfq">
+   <title><systemitem class="resource">bfq</systemitem></title>
+   <para><remark>toms 2019-11-27: TBD</remark></para>
+  </sect2>
+
+  <sect2 xml:id="sec-tuning-io-schedulers-kyper">
+   <title><systemitem class="resource">kyper</systemitem></title>
+   <para><remark>toms 2019-11-27: TBD</remark></para>
+  </sect2>
+
+  <sect2 xml:id="sec-tuning-io-schedulers-mq-deadline">
+   <title><systemitem>mq-deadline</systemitem></title>
+   <para><remark>toms 2019-11-27: TBD</remark></para>
+  </sect2>
+
  </sect1>
  <sect1 xml:id="cha-tuning-io-barrier">
   <title>I/O Barrier Tuning</title>
@@ -505,12 +600,15 @@ sys     0m1.516s</screen>
    is already the default for some devices, for example, NVM Express devices.
   </para>
 
+<!-- toms 2019-11-27: according to Sören, this statement is not correct
+   anymore:
   <para>
    Currently blk-mq has no I/O scheduling support (no CFQ, no deadline
    I/O scheduler). This lack of I/O scheduling can cause significant
    performance degradation when spinning disks are used. Therefore
    blk-mq is not enabled by default for SCSI devices.
   </para>
+ -->
 
   <para>
    If you have fast SCSI devices (for example, SSDs) instead of SCSI
